@@ -1459,31 +1459,39 @@ function joinGameSession(sessionId, userEnteredName) {
     }
   });
 
-  // 2. Determine which player slot is free (up to MAX_PLAYERS)
-  sessionRef.child('players').once('value').then(snapshot => {
-    const playersData = snapshot.val() || {};
-    let newPlayerKey;
-    console.log("joinGameSession – MAX_PLAYERS =", MAX_PLAYERS);
-    for (let i = 1; i <= MAX_PLAYERS; i++) {
-      const key = 'player' + i;
-      if (!playersData[key]) {
-        newPlayerKey = key;
-        break;
-      }
+  // 2–3. Atomically claim the next free slot
+const playersRef = sessionRef.child('players');
+playersRef.transaction((players) => {
+  if (players == null) players = {};          // no players yet
+  for (let i = 1; i <= MAX_PLAYERS; i++) {
+    const slot = 'player' + i;
+    if (!players[slot]) {
+      // claim it
+      players[slot] = {
+        name: userEnteredName,
+        score: 0,
+        hasAnswered: false
+      };
+      // store for the callback
+      currentPlayerId = slot;
+      return players;
     }
-    if (!newPlayerKey) {
-      console.error(`Session is already full (max ${MAX_PLAYERS} players).`);
-      return;
-    }
-
-    // 3. Register this player (with onDisconnect cleanup)
-    const playerRef = sessionRef.child('players').child(newPlayerKey);
-    playerRef.set({
-      name: userEnteredName,
-      score: 0,
-      hasAnswered: false
-    });
-    playerRef.onDisconnect().remove();
+  }
+  // no free slots → abort
+  return;  
+}, (error, committed, snapshot) => {
+  if (error) {
+    console.error('Could not join (transaction failed):', error);
+  } else if (!committed) {
+    console.error(`Session is already full (max ${MAX_PLAYERS} players).`);
+  } else {
+    // success!
+    currentSessionId = sessionId;
+    window.game.gameActive   = true;
+    window.game.currentIndex = -1;
+    // now hook up your on‑value listener exactly as before:
+    sessionRef.on('value', /* … */);
+  }
 
     // 4. Track globally & start listening
     currentSessionId = sessionId;
