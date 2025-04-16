@@ -1429,6 +1429,9 @@ function createHostGameSession(allSentences, hostName) {
 function joinGameSession(sessionId, userEnteredName) {
   const sessionRef = firebase.database().ref('gameSessions/' + sessionId);
 
+    // ← Add this line for debugging:
+    console.log("joinGameSession – MAX_PLAYERS =", MAX_PLAYERS);
+
   // 0. Make sure we actually got a player name
   if (!userEnteredName) {
     console.error("joinGameSession called without a valid player name!");
