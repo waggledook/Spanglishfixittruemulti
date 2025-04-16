@@ -24,12 +24,16 @@ const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
 
 window.addEventListener("load", () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const sessionFromURL = urlParams.get("session");
+  // Debug: is this listener firing, and do we see a session param?
+  console.log("🏁 window.load fired. location.search =", window.location.search);
+
+  const sessionFromURL = new URLSearchParams(window.location.search).get("session");
+  console.log("   sessionFromURL =", sessionFromURL);
+
   if (sessionFromURL) {
     promptForPlayerName((name) => {
       currentSessionId = sessionFromURL;
-      currentPlayerId = name;
+      currentPlayerId  = name;
       joinGameSession(currentSessionId, currentPlayerId);
     });
   }
