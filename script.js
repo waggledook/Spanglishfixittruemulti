@@ -22,6 +22,7 @@ let currentPlayerId = null;
 // how many players before the host can start, and max slots
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
+const sessionParam = new URLSearchParams(window.location.search).get("session");
 
 window.addEventListener("load", () => {
   // Debug: is this listener firing, and do we see a session param?
@@ -92,11 +93,11 @@ class SpanglishFixitGame {
     }
 
     initUI() {
-        console.log("Game script is running!");
-        document.title = "Spanglish Fixit Challenge";
-       // Check for the session parameter in the URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const sessionParam = urlParams.get("session");
+      console.log("Game script is running!");
+      document.title = "Spanglish Fixit Challenge";
+      // ← insert it right here:
+      const sessionParam = new URLSearchParams(window.location.search).get("session");
+      console.log("initUI sees sessionParam =", sessionParam);
 
   if (sessionParam) {
     // Player joining mode (full UI)
