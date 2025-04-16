@@ -1,3 +1,5 @@
+console.log("✅ script.js loaded");
+
 window.generateQRCode = function generateQRCode(url, elementId = "qr-code") {
   const qrContainer = document.getElementById(elementId);
   if (!qrContainer) return;
@@ -1429,7 +1431,7 @@ function createHostGameSession(allSentences, hostName) {
 function joinGameSession(sessionId, userEnteredName) {
   // ← Add this line for debugging:
   console.log("joinGameSession – MAX_PLAYERS =", MAX_PLAYERS);
-  
+
   const sessionRef = firebase.database().ref('gameSessions/' + sessionId);
 
     
