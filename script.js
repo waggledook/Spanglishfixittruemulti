@@ -1434,89 +1434,81 @@ function createHostGameSession(allSentences, hostName) {
 }
 
 function joinGameSession(sessionId, userEnteredName) {
-  // ← Add this line for debugging:
+  // ← Debug
   console.log("joinGameSession – MAX_PLAYERS =", MAX_PLAYERS);
 
-  const sessionRef = firebase.database().ref('gameSessions/' + sessionId);
-
-    
-
-  // 0. Make sure we actually got a player name
+  // 0. Validate player name
   if (!userEnteredName) {
     console.error("joinGameSession called without a valid player name!");
     return;
   }
-
-  // Hide the single‑player Start button so multiplayer users aren’t confused
+  // Hide single‑player “Start” button if present
   const startBtn = document.getElementById("start");
   if (startBtn) startBtn.style.display = "none";
 
-  // 1. One‑time fetch of the 15 sentences
-  sessionRef.once('value').then(snapshot => {
-    const data = snapshot.val();
-    if (data && data.sentences) {
-      window.game.sentences = data.sentences;
-    }
+  // Prepare Firebase refs
+  const sessionRef = firebase.database().ref('gameSessions/' + sessionId);
+  const playersRef = sessionRef.child('players');
+
+  // 1️⃣ Load the 15 sentences once
+  sessionRef.child('sentences').once('value').then(snap => {
+    const data = snap.val();
+    if (data) window.game.sentences = data;
   });
 
-  // 2–3. Atomically claim the next free slot
-const playersRef = sessionRef.child('players');
-playersRef.transaction((players) => {
-  if (players == null) players = {};          // no players yet
-  for (let i = 1; i <= MAX_PLAYERS; i++) {
-    const slot = 'player' + i;
-    if (!players[slot]) {
-      // claim it
-      players[slot] = {
-        name: userEnteredName,
-        score: 0,
-        hasAnswered: false
-      };
-      // store for the callback
-      currentPlayerId = slot;
-      return players;
+  // 2️⃣ Atomically claim the next free slot
+  playersRef.transaction(currentPlayers => {
+    if (currentPlayers == null) currentPlayers = {};
+    for (let i = 1; i <= MAX_PLAYERS; i++) {
+      const slot = 'player' + i;
+      if (!currentPlayers[slot]) {
+        currentPlayers[slot] = {
+          name: userEnteredName,
+          score: 0,
+          hasAnswered: false
+        };
+        currentPlayerId = slot;    // remember our slot
+        return currentPlayers;     // commit
+      }
     }
-  }
-  // no free slots → abort
-  return;  
-}, (error, committed, snapshot) => {
-  if (error) {
-    console.error('Could not join (transaction failed):', error);
-  } else if (!committed) {
-    console.error(`Session is already full (max ${MAX_PLAYERS} players).`);
-  } else {
-    // success!
-    currentSessionId = sessionId;
-    window.game.gameActive   = true;
-    window.game.currentIndex = -1;
-    // now hook up your on‑value listener exactly as before:
-    sessionRef.on('value', /* … */);
-  }
+    return; // abort if no free slots
+  }, (error, committed) => {
+    if (error) {
+      console.error("Could not join (transaction failed):", error);
+      return;
+    }
+    if (!committed) {
+      console.error(`Session is already full (max ${MAX_PLAYERS} players).`);
+      return;
+    }
 
-    // 4. Track globally & start listening
+    // 🎉 Successfully joined!
     currentSessionId = sessionId;
-    currentPlayerId  = newPlayerKey;
-    window.game.gameActive   = true;
+    window.game.gameActive = true;
     window.game.currentIndex = -1;
 
+    // Remove us on disconnect
+    playersRef.child(currentPlayerId).onDisconnect().remove();
+
+    // 3️⃣ Attach the real‑time listener
     sessionRef.on('value', snapshot => {
       const gameState = snapshot.val();
       if (!gameState) return;
 
-      // Game‑over check
+      // Game‑over?
       if (gameState.currentRound >= window.game.totalSentences) {
         return window.game.endGame();
       }
 
-      // Minimum players required before starting
-const playerCount = gameState.players
-? Object.keys(gameState.players).length
-: 0;
-if (playerCount < MIN_PLAYERS) {
-document.getElementById("feedback").textContent =
-  `Waiting for ${MIN_PLAYERS - playerCount} more player(s) to join…`;
-return;
-}
+      // Waiting for enough players
+      const playerCount = gameState.players
+        ? Object.keys(gameState.players).length
+        : 0;
+      if (playerCount < MIN_PLAYERS) {
+        document.getElementById("feedback").textContent =
+          `Waiting for ${MIN_PLAYERS - playerCount} more player(s) to join…`;
+        return;
+      }
 
       // Waiting for host to start
       if (gameState.currentRound === -1) {
@@ -1536,8 +1528,8 @@ return;
             `;
             btn.addEventListener("click", () => {
               sessionRef.update({
-                currentRound:  0,
-                roundOver:     false,
+                currentRound: 0,
+                roundOver: false,
                 roundStartTime: Date.now()
               });
               btn.remove();
@@ -1554,7 +1546,7 @@ return;
         return;
       }
 
-      // Game in progress: update counter/sentence
+      // Game in progress: update counter & sentence
       document.getElementById("counter").textContent =
         `Round: ${gameState.currentRound + 1}`;
       if (window.game.currentIndex !== gameState.currentRound) {
@@ -1562,25 +1554,30 @@ return;
         window.game.updateSentence();
       }
 
-      // ----- Round Over: Wait for Host Trigger -----
+      // Round intermission
       if (gameState.roundOver && !window.overlayDisplayed) {
-  window.overlayDisplayed = true;
-  if (currentPlayerId === "host") {
-    showHostIntermission(gameState.sentences[gameState.currentRound], gameState);
-  } else {
-    showPlayerIntermission(gameState.sentences[gameState.currentRound], gameState);
-  }
-}
-  // If the round is no longer over, remove the player's overlay and update the sentence.
-if (!gameState.roundOver) {
-  const overlay = document.getElementById("intermission");
-  if (overlay) overlay.remove();
-  window.overlayDisplayed = false; // Reset flag
-  if (window.game.currentIndex !== gameState.currentRound) {
-    window.game.currentIndex = gameState.currentRound;
-    window.game.updateSentence();
-  }
-}
+        window.overlayDisplayed = true;
+        if (currentPlayerId === "host") {
+          showHostIntermission(
+            gameState.sentences[gameState.currentRound],
+            gameState
+          );
+        } else {
+          showPlayerIntermission(
+            gameState.sentences[gameState.currentRound],
+            gameState
+          );
+        }
+      } else if (!gameState.roundOver) {
+        // Remove intermission overlay and advance
+        const overlay = document.getElementById("intermission");
+        if (overlay) overlay.remove();
+        window.overlayDisplayed = false;
+        if (window.game.currentIndex !== gameState.currentRound) {
+          window.game.currentIndex = gameState.currentRound;
+          window.game.updateSentence();
+        }
+      }
     });
   });
 }
