@@ -1451,6 +1451,7 @@ function joinGameSession(sessionId, userEnteredName) {
   sessionRef.child('players').once('value').then(snapshot => {
     const playersData = snapshot.val() || {};
     let newPlayerKey;
+    console.log("joinGameSession – MAX_PLAYERS =", MAX_PLAYERS);
     for (let i = 1; i <= MAX_PLAYERS; i++) {
       const key = 'player' + i;
       if (!playersData[key]) {
