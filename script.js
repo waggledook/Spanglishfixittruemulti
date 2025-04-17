@@ -253,77 +253,94 @@ class SpanglishFixitGame {
     // Host mode (minimal UI)
     document.body.innerHTML = `
       <style>
-        /* Minimal Host UI Styles */
-        body {
-          font-family: 'Poppins', sans-serif;
-          background: linear-gradient(135deg, #2E3192, #1BFFFF);
-          color: white;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          margin: 0;
-        }
-        /* Instructions overlay */
-        #instructions-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-        #instructions-box {
-          background: #333;
-          padding: 20px;
-          border-radius: 10px;
-          max-width: 500px;
-          text-align: left;
-        }
-        #close-instructions {
-          margin-top: 15px;
-          padding: 5px 10px;
-          background: #28a745;
-          border: none;
-          border-radius: 5px;
-          color: white;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-        #close-instructions:hover {
-          opacity: 0.8;
-        }
-        /* Minimal Host Container */
-        #host-container {
-          margin-top: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-          text-align: center;
-          width: 90%;
-          max-width: 600px;
-        }
-        #hostGameButton {
-          padding: 10px 20px;
-          font-size: 18px;
-          background: #28a745;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-        #hostGameButton:hover {
-          opacity: 0.8;
-        }
-      </style>
+  /* Minimal Host UI Styles */
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #2E3192, #1BFFFF);
+    color: white;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+  /* Instructions overlay */
+  #instructions-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  #instructions-box {
+    background: #333;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    text-align: left;
+  }
+  #close-instructions {
+    margin-top: 15px;
+    padding: 5px 10px;
+    background: #28a745;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  #close-instructions:hover {
+    opacity: 0.8;
+  }
+  /* Minimal Host Container */
+  #host-container {
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 600px;
+  }
+  #hostGameButton {
+    padding: 10px 20px;
+    font-size: 18px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  #hostGameButton:hover {
+    opacity: 0.8;
+  }
+
+  /* ——— New: hide QR & copy until we host ——— */
+  #host-qr-wrapper {
+    display: none;               /* hide the QR container */
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  #copyLinkButton {
+    display: none;               /* hide the copy‑link button */
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
       <!-- Instructions Overlay -->
       <div id="instructions-overlay">
         <div id="instructions-box">
@@ -341,19 +358,40 @@ class SpanglishFixitGame {
         </div>
       </div>
       <!-- Minimal Host Container -->
-      <div id="host-container">
-  <img id="titleImage" src="images/Spanglish-title.png" alt="Spanglish Fixit" style="display: block; max-width: 300px; margin: 0 auto;">
-  <!-- Dedicated wrapper for the QR code -->
-  <div id="host-qr-wrapper" style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 10px;">
-  <div id="host-qr-code" style="padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);">
-    <!-- QR code will be generated here -->
+<div id="host-container">
+  <img
+    id="titleImage"
+    src="images/Spanglish-title.png"
+    alt="Spanglish Fixit"
+    style="display: block; max-width: 300px; margin: 0 auto;"
+  />
+
+  <!-- Dedicated wrapper for the QR code (hidden until Host Game is clicked) -->
+  <div
+    id="host-qr-wrapper"
+    style="display: none; justify-content: center; align-items: center; gap: 12px; margin-top: 10px;"
+  >
+    <div
+      id="host-qr-code"
+      style="padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);"
+    >
+      <!-- QR code will be generated here -->
+    </div>
+    <button
+      id="copyLinkButton"
+      style="display: none; padding: 8px 12px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer;"
+    >
+      Copy link
+    </button>
   </div>
-  <button id="copyLinkButton" style="padding: 8px 12px; font-size: 14px; border:none; border-radius:5px; cursor:pointer;">
-    Copy link
+
+  <!-- Host Game button (still inside the black box) -->
+  <button
+    id="hostGameButton"
+    style="display: block; margin: 20px auto 0 auto; padding: 10px 20px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s;"
+  >
+    Host Game
   </button>
-</div>
-  </div>
-  <button id="hostGameButton" style="display: block; margin: 20px auto 0 auto;">Host Game</button>
 </div>
     `;
   }
@@ -461,57 +499,58 @@ if (sessionParam) {
   this.updateBestScoreDisplay();
 } else {
   // HOST MODE (minimal UI)
-  const hostBtn = document.getElementById("hostGameButton");
-  if (hostBtn) {
-    hostBtn.addEventListener("click", () => {
-      promptForPlayerName((name) => {
-        // Create a game session as a host.
-        const sessionId = createHostGameSession(sentences, name);
-        currentSessionId = sessionId;
-        currentPlayerId = "host"; // Mark client as host
+const hostBtn = document.getElementById("hostGameButton");
+if (hostBtn) {
+  hostBtn.addEventListener("click", () => {
+    promptForPlayerName((name) => {
+      // Create a game session as a host.
+      const sessionId = createHostGameSession(sentences, name);
+      currentSessionId = sessionId;
+      currentPlayerId = "host";
 
-        // Update the host container: hide the host button and show a host label.
-        hostBtn.style.display = "none";
-        const hostLabel = document.createElement("div");
-        hostLabel.id = "host-label";
-        hostLabel.style.marginTop = "10px";
-        hostLabel.style.fontWeight = "bold";
-        hostLabel.textContent = "You are hosting this game";
-        const hostContainer = document.getElementById("host-container");
-        if (hostContainer) hostContainer.appendChild(hostLabel);
+      // 1) Hide the Host Game button
+      hostBtn.style.display = "none";
 
-        // Generate the join URL and display the QR code in the host container.
-        let baseUrl = (location.hostname === "localhost")
-          ? window.location.origin
-          : "https://waggledook.github.io/Spanglishfixittruemulti";
-        const joinUrl = `${baseUrl}?session=${sessionId}`;
+      // 2) (Optional) show a “You are hosting” label
+      const hostLabel = document.createElement("div");
+      hostLabel.id = "host-label";
+      hostLabel.style.marginTop = "10px";
+      hostLabel.style.fontWeight = "bold";
+      hostLabel.textContent = "You are hosting this game";
+      document.getElementById("host-container").appendChild(hostLabel);
 
-        // Create a container for the QR code if it doesn't exist.
-        let qrContainer = document.getElementById("host-qr-code");
-        if (!qrContainer && hostContainer) {
-          qrContainer = document.createElement("div");
-          qrContainer.id = "host-qr-code";
-          qrContainer.style.marginTop = "10px";
-          hostContainer.appendChild(qrContainer);
-        }
-        generateQRCode(joinUrl, "host-qr-code");
-        // then wire up our copy button:
-const copyBtn = document.getElementById("copyLinkButton");
-copyBtn.addEventListener("click", () => {
-  navigator.clipboard.writeText(joinUrl)
-    .then(() => {
-      // simple feedback
-      copyBtn.textContent = "Copied!";
-      setTimeout(() => copyBtn.textContent = "Copy link", 1500);
-    })
-    .catch(() => alert("Failed to copy. Try again."));
-});
+      // 3) Build join URL and generate the QR
+      const baseUrl = (location.hostname === "localhost")
+        ? window.location.origin
+        : "https://waggledook.github.io/Spanglishfixittruemulti";
+      const joinUrl = `${baseUrl}?session=${sessionId}`;
 
-        // Attach the realtime listener for the host view.
-        joinGameSessionAsHost(sessionId, name);
+      // QR code div already exists in your HTML
+      generateQRCode(joinUrl, "host-qr-code");
+
+      // —— NEW: unhide the QR wrapper and copy button ——
+      const qrWrapper = document.getElementById("host-qr-wrapper");
+      qrWrapper.style.display = "flex";
+
+      const copyBtn = document.getElementById("copyLinkButton");
+      copyBtn.style.display = "inline-block";
+      // — end new —
+
+      // 4) Wire up the copy button
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(joinUrl)
+          .then(() => {
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => copyBtn.textContent = "Copy link", 1500);
+          })
+          .catch(() => alert("Failed to copy. Try again."));
       });
+
+      // 5) Finally, start listening as host
+      joinGameSessionAsHost(sessionId, name);
     });
-  }
+  });
+}
 }
     }
 
