@@ -2083,18 +2083,38 @@ function showHostIntermission(currentSentence, sessionData) {
 }
 
 function showPlayerIntermission(currentSentence, sessionData) {
-  // Create the overlay container
+  // 1) For debugging—see exactly what your players object looks like:
+  console.log("⏱ Intermission players data:", sessionData.players);
+
+  // 2) Turn that object into an array of [slot, data], sort by score:
+  const entries = Object.entries(sessionData.players || {});
+  const playersArr = entries
+    .map(([slot, p]) => ({ slot, ...p }))
+    .sort((a, b) => b.score - a.score);
+
+  // 3) Build your HTML, using p.name if it exists, or falling back to the slot key:
+  const scoresHtml = playersArr.map(p => {
+    const displayName = p.name || p.slot;
+    return `
+      <p style="font-size:20px; margin:8px 0;">
+        <strong>${displayName}</strong>: ${p.score}
+        ${p.hasAnswered ? '(Answered)' : '(Waiting)'}
+      </p>
+    `;
+  }).join('');
+
+  // 4) Inject the overlay as before:
   const intermissionDiv = document.createElement('div');
   intermissionDiv.id = 'intermission';
   Object.assign(intermissionDiv.style, {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
+    top:    '50%',
+    left:   '50%',
     transform: 'translate(-50%, -50%)',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     padding: '30px',
     borderRadius: '12px',
-    boxShadow: '0px 0px 20px rgba(0, 0, 0, 0.5)',
+    boxShadow: '0 0 20px rgba(0,0,0,0.5)',
     zIndex: '2000',
     color: '#fff',
     fontFamily: "'Poppins', sans-serif",
@@ -2103,24 +2123,10 @@ function showPlayerIntermission(currentSentence, sessionData) {
     maxWidth: '600px'
   });
 
-  // Sort all players by descending score
-  const playersArr = Object.values(sessionData.players || {})
-                           .sort((a, b) => b.score - a.score);
-
-  // Build a <p> line for each player
-  const scoresHtml = playersArr.map(p => `
-    <p style="font-size:20px; margin:8px 0;">
-      <strong>${p.name}</strong>: ${p.score}
-      ${p.hasAnswered ? '(Answered)' : '(Waiting)'}
-    </p>
-  `).join('');
-
-  // Format the correct answer (array or string)
   const correctText = Array.isArray(currentSentence.correctAnswer)
     ? currentSentence.correctAnswer.join(' / ')
     : currentSentence.correctAnswer;
 
-  // Inject the full intermission HTML
   intermissionDiv.innerHTML = `
     <h2 style="margin-top:0;font-size:28px;">Round Complete!</h2>
     <p style="font-size:20px; margin:8px 0;">
@@ -2136,7 +2142,6 @@ function showPlayerIntermission(currentSentence, sessionData) {
     </p>
   `;
 
-  // Append to the game container
   document.getElementById("game-container").appendChild(intermissionDiv);
 }
 
