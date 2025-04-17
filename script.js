@@ -1987,18 +1987,52 @@ if (startBtn && !window.startButtonDisplayed) {
 }
 
 function showHostIntermission(currentSentence, sessionData) {
-  // Create a host-specific intermission overlay
+  // 1) Debug: inspect what players data looks like
+  console.log("🔔 Host intermission data:", sessionData.players);
+
+  // 2) Build an array of players with slot keys
+  const playersArr = Object.entries(sessionData.players || {})
+    .map(([slot, p]) => ({ slot, ...p }))
+    .sort((a, b) => b.score - a.score);
+
+  // 3) Normalize correct answers to lowercase
+  let possible = currentSentence.correctAnswer;
+  if (!Array.isArray(possible)) possible = [possible];
+  possible = possible.map(ans => ans.toLowerCase());
+
+  // 4) Build HTML for each player: name, score, and color‑coded answer
+  const scoresHtml = playersArr.map(p => {
+    const name = p.name || p.slot;
+    const answer = (p.lastAnswer || "").trim();
+    const isCorrect = possible.includes(answer.toLowerCase());
+    const color = isCorrect ? "#0f0" : "#f00";
+    return `
+      <div style="margin:8px 0; text-align:left;">
+        <p style="font-size:20px; margin:2px 0;">
+          <strong>${name}</strong>: ${p.score}
+          ${p.hasAnswered ? "(Answered)" : "(Waiting)"}
+        </p>
+        <p style="font-size:16px; margin:2px 0;">
+          Answer: 
+          <span style="color:${color}; font-weight:bold;">
+            ${answer || "—"}
+          </span>
+        </p>
+      </div>
+    `;
+  }).join("");
+
+  // 5) Create and style the overlay
   const intermissionDiv = document.createElement('div');
   intermissionDiv.id = 'host-intermission';
   Object.assign(intermissionDiv.style, {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
+    top: '50%', left: '50%',
     transform: 'translate(-50%, -50%)',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     padding: '30px',
     borderRadius: '12px',
-    boxShadow: '0px 0px 20px rgba(0, 0, 0, 0.5)',
+    boxShadow: '0 0 20px rgba(0,0,0,0.5)',
     zIndex: '2000',
     color: '#fff',
     fontFamily: "'Poppins', sans-serif",
@@ -2007,17 +2041,7 @@ function showHostIntermission(currentSentence, sessionData) {
     maxWidth: '600px'
   });
 
-  // Build HTML: error, correct answer, all players' scores, and Next Round button
-  const playersArr = Object.values(sessionData.players)
-                           .sort((a, b) => b.score - a.score);
-
-  const scoresHtml = playersArr.map(p =>
-    `<p style="font-size:20px; margin:8px 0;">
-       <strong>${p.name}</strong>: ${p.score}
-       ${p.hasAnswered ? '(Answered)' : '(Waiting)'}
-     </p>`
-  ).join('');
-
+  // 6) Format the correct answer(s)
   const correctText = Array.isArray(currentSentence.correctAnswer)
     ? currentSentence.correctAnswer.join(' / ')
     : currentSentence.correctAnswer;
@@ -2053,28 +2077,27 @@ function showHostIntermission(currentSentence, sessionData) {
 
   document.body.appendChild(intermissionDiv);
 
-  // Advance when host clicks "Next Round"
+  // 7) Advance when host clicks "Next Round"
   document.getElementById("nextRoundBtn").addEventListener("click", () => {
     const sessionRef = firebase.database().ref("gameSessions/" + currentSessionId);
 
-    // If final round, trigger endGame
+    // If final round, end the game
     if (sessionData.currentRound >= window.game.totalSentences - 1) {
       intermissionDiv.remove();
       window.overlayDisplayed = false;
-      sessionRef.update({ currentRound: window.game.totalSentences });
-      return;
+      return sessionRef.update({ currentRound: window.game.totalSentences });
     }
 
-    // Otherwise, increment round and reset all hasAnswered
-    const newRound = sessionData.currentRound + 1;
+    // Otherwise, bump round + reset answered flags
+    const next = sessionData.currentRound + 1;
     sessionRef.update({
-      currentRound:   newRound,
+      currentRound:   next,
       roundStartTime: Date.now(),
       roundOver:      false
     });
-
     Object.keys(sessionData.players || {}).forEach(key => {
-      sessionRef.child("players").child(key).update({ hasAnswered: false });
+      sessionRef.child("players").child(key)
+                .update({ hasAnswered: false });
     });
 
     intermissionDiv.remove();
@@ -2083,33 +2106,48 @@ function showHostIntermission(currentSentence, sessionData) {
 }
 
 function showPlayerIntermission(currentSentence, sessionData) {
-  // 1) For debugging—see exactly what your players object looks like:
+  // Debug: inspect what data we have
   console.log("⏱ Intermission players data:", sessionData.players);
 
-  // 2) Turn that object into an array of [slot, data], sort by score:
-  const entries = Object.entries(sessionData.players || {});
-  const playersArr = entries
+  // Build an array of players with their slot key
+  const playersArr = Object.entries(sessionData.players || {})
     .map(([slot, p]) => ({ slot, ...p }))
     .sort((a, b) => b.score - a.score);
 
-  // 3) Build your HTML, using p.name if it exists, or falling back to the slot key:
+  // Normalize correct answers to lowercase
+  let possible = currentSentence.correctAnswer;
+  if (!Array.isArray(possible)) possible = [possible];
+  possible = possible.map(ans => ans.toLowerCase());
+
+  // Build the HTML for each player
   const scoresHtml = playersArr.map(p => {
     const displayName = p.name || p.slot;
-    return `
-      <p style="font-size:20px; margin:8px 0;">
-        <strong>${displayName}</strong>: ${p.score}
-        ${p.hasAnswered ? '(Answered)' : '(Waiting)'}
-      </p>
-    `;
-  }).join('');
+    const answer = (p.lastAnswer || "").trim();
+    const isCorrect = possible.includes(answer.toLowerCase());
+    const answerColor = isCorrect ? "#0f0" : "#f00";
 
-  // 4) Inject the overlay as before:
+    return `
+      <div style="margin:8px 0; text-align:left;">
+        <p style="font-size:20px; margin:2px 0;">
+          <strong>${displayName}</strong>: ${p.score}
+          ${p.hasAnswered ? "(Answered)" : "(Waiting)"}
+        </p>
+        <p style="font-size:16px; margin:2px 0;">
+          Answer: 
+          <span style="color:${answerColor}; font-weight:bold;">
+            ${answer || "—"}
+          </span>
+        </p>
+      </div>
+    `;
+  }).join("");
+
+  // Create and style the overlay
   const intermissionDiv = document.createElement('div');
   intermissionDiv.id = 'intermission';
   Object.assign(intermissionDiv.style, {
     position: 'absolute',
-    top:    '50%',
-    left:   '50%',
+    top: '50%', left: '50%',
     transform: 'translate(-50%, -50%)',
     backgroundColor: 'rgba(0,0,0,0.85)',
     padding: '30px',
@@ -2123,12 +2161,13 @@ function showPlayerIntermission(currentSentence, sessionData) {
     maxWidth: '600px'
   });
 
+  // Format the correct answer for display
   const correctText = Array.isArray(currentSentence.correctAnswer)
     ? currentSentence.correctAnswer.join(' / ')
     : currentSentence.correctAnswer;
 
   intermissionDiv.innerHTML = `
-    <h2 style="margin-top:0;font-size:28px;">Round Complete!</h2>
+    <h2 style="margin-top:0; font-size:28px;">Round Complete!</h2>
     <p style="font-size:20px; margin:8px 0;">
       <strong>Error Word:</strong> ${currentSentence.errorWord}
     </p>
