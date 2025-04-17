@@ -186,8 +186,8 @@ class SpanglishFixitGame {
 /* every word becomes a pill-shaped tappable target */
 .clickable-word {
   display: inline-block;
-  padding: 4px 6px;
-  margin: 0 0.5px;
+  padding: 2px 4px;
+  margin: 0 0.2px;
   font-size: 1.5rem;
   border-radius: 12px;
   cursor: pointer;
