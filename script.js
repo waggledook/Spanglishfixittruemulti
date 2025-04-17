@@ -454,7 +454,7 @@ if (sessionParam) {
         // Generate the join URL and display the QR code in the host container.
         let baseUrl = (location.hostname === "localhost")
           ? window.location.origin
-          : "https://waggledook.github.io/Spanglishfixithostcomp";
+          : "https://waggledook.github.io/Spanglishfixittruemulti";
         const joinUrl = `${baseUrl}?session=${sessionId}`;
 
         // Create a container for the QR code if it doesn't exist.
@@ -1923,23 +1923,34 @@ function joinGameSessionAsHost(sessionId, hostName) {
     if (
       gameState.currentRound === -1 &&
       gameState.players &&
-      Object.keys(gameState.players).length >= 2 &&
-      currentPlayerId === "host" &&
-      !window.startButtonDisplayed
+      Object.keys(gameState.players).length >= MIN_PLAYERS &&
+      currentPlayerId === "host"
     ) {
-      window.startButtonDisplayed = true;
       dynamicHtml += `
         <button id="hostStartGame" style="
-          padding: 10px 20px; 
-          font-size: 18px; 
-          margin-top: 10px; 
-          background: #28a745; 
-          color: white; 
-          border: none; 
-          border-radius: 5px;">
-            Start Game
-        </button>`;
+          padding: 10px 20px;
+          font-size: 18px;
+          margin-top: 10px;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+        ">Start Game</button>
+      `;
     }
+    // Wire up Start Game click only once
+const startBtn = document.getElementById("hostStartGame");
+if (startBtn && !window.startButtonDisplayed) {
+  startBtn.addEventListener("click", () => {
+    sessionRef.update({
+      currentRound:  0,
+      roundOver:     false,
+      roundStartTime: Date.now()
+    });
+    window.startButtonDisplayed = true;
+  });
+}
 
     // Update only the dynamic content container
     const dynamicContent = document.getElementById("host-dynamic-content");
