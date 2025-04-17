@@ -187,7 +187,7 @@ class SpanglishFixitGame {
 .clickable-word {
   display: inline-block;
   padding: 6px 10px;
-  margin: 0 3px;
+  margin: 0 1px;
   font-size: 1.5rem;
   border-radius: 12px;
   cursor: pointer;
