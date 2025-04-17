@@ -177,6 +177,35 @@ class SpanglishFixitGame {
         button:hover {
           opacity: 0.8;
         }
+        /* —— make the sentence text bigger and tappable —— */
+#sentence {
+  font-size: 1.5rem;       /* about 24px */
+  line-height: 1.4;
+}
+
+/* every word becomes a pill-shaped tappable target */
+.clickable-word {
+  display: inline-block;
+  padding: 6px 10px;
+  margin: 0 3px;
+  font-size: 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.clickable-word:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* after click, we’ll add one of these classes: */
+.correct-bubble {
+  background-color: #28a745;
+  color: #fff;
+}
+.incorrect-bubble {
+  background-color: #e74c3c;
+  color: #fff;
+}
       </style>
       <!-- Instructions Overlay -->
       <div id="instructions-overlay">
@@ -554,12 +583,16 @@ copyBtn.addEventListener("click", () => {
     const cleanedErrorWord = currentSentence.errorWord.replace(/[^\w\s]|_/g, "").trim().toLowerCase();
     const clickTime = Date.now() - this.startClickTime;
         if (this.reviewMode) {
-            // In review mode, simply highlight correct/incorrect and proceed
-            if (cleanedClickedWord === cleanedErrorWord) {
-                wordElement.style.color = 'green';
-            } else {
-                wordElement.style.color = 'red';
-            }
+           // clear any previous bubbles
+document.querySelectorAll('.clickable-word')
+.forEach(el => el.classList.remove('correct-bubble','incorrect-bubble'));
+
+// now bubble the clicked word
+if (cleanedClickedWord === cleanedErrorWord) {
+wordElement.classList.add('correct-bubble');
+} else {
+wordElement.classList.add('incorrect-bubble');
+}
             const correctWordElements = document.querySelectorAll('.clickable-word');
             correctWordElements.forEach((element) => {
                 if (element.textContent.replace(/[^\w\s]|_/g, "").trim().toLowerCase() === cleanedErrorWord) {
@@ -575,10 +608,16 @@ copyBtn.addEventListener("click", () => {
         if (cleanedClickedWord === cleanedErrorWord) {
             let clickScore = Math.max(100 - Math.floor(clickTime / 300), 10);
             this.score += clickScore;
-            wordElement.style.color = 'green';
+            // clear any old bubbles then add the green pill
+             document.querySelectorAll('.clickable-word')
+            .forEach(el => el.classList.remove('correct-bubble','incorrect-bubble'));
+            wordElement.classList.add('correct-bubble');
         } else {
             this.score -= 50;
-            wordElement.style.color = 'red';
+            // clear any old bubbles then add the red pill
+            document.querySelectorAll('.clickable-word')
+           .forEach(el => el.classList.remove('correct-bubble','incorrect-bubble'));
+           wordElement.classList.add('incorrect-bubble');
             if (!this.wrongAnswers.includes(currentSentence)) {
                 this.wrongAnswers.push(currentSentence);
             }
